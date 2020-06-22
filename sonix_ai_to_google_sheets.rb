@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+SEPERATOR = "^"
+
 def just_the_notes(input_filename, output_filename)
   print_output = false
 
@@ -18,39 +20,49 @@ def just_the_notes(input_filename, output_filename)
   end
 end
 
-def close_out_line(lines, index)
-  if index + 1 == lines.size
-    # last line
-    return true
-  end
-
-  if lines[index +1][0] == "["
-    return true
-  end
-
-  false
-end
-
 def formatted_codes(original_filename, input_filename, output_filename)
   lines = File.readlines(input_filename)
 
   File.open(output_filename, "w") do |out|
 
-    out.write "Timestamp, File, Initial Coding"
+    out.write "Sequence#{SEPERATOR}File#{SEPERATOR}Timestamp#{SEPERATOR}Initial Coding#{SEPERATOR}Quote\n"
 
-    lines.each_with_index do |line, index|
-      formatted_line = line.gsub("\"", "\"\"") # double quote
-      formatted_line = formatted_line.gsub("] ", "]^") # insert seperator
+    last_timestamp = "[]"
 
-      formatted_line = formatted_line.gsub("^", "^\"") #start
+    lines.each_with_index  do |line, index|
+      formatted_line = line.strip
+      # puts "#{index}----\n"
 
-      if close_out_line(lines, index)
-        formatted_line = formatted_line.strip + "\"" + "\n" # end
+      next if formatted_line == ""
+
+      timestamp_match = formatted_line.match(/\[[\d\:]*\]/)
+      # puts formatted_line
+      if timestamp_match
+        last_timestamp = timestamp_match[0]
+        formatted_line = formatted_line.gsub(last_timestamp , "") # remove timestamp so we can just treat all lines the same
+        formatted_line = formatted_line.strip
       end
+      # puts formatted_line
 
-      formatted_line = formatted_line.gsub("^", "^#{original_filename}^") # insert filename
+      # formatted_line = formatted_line.gsub("\"", "\"\"") # double quote
+      formatted_line = formatted_line.gsub("- Quote", "Quote")
+      formatted_line = formatted_line.gsub("Quote", "#{SEPERATOR}Quote")
 
-      out.write formatted_line
+      formatted_line = formatted_line.gsub("- Context", "Context")
+      formatted_line = formatted_line.gsub("Context", "#{SEPERATOR}Context")
+
+      # parts = formatted_line.split("Quote")
+      # code = parts[0]
+      # quote = parts[1]
+      # if quote
+      #   quote = "Quote " + quote
+      # end
+
+      reference_file = original_filename.sub(".txt", "")
+      # output_line = "000#{SEPERATOR}#{reference_file}"#{SEPERATOR}"#{last_timestamp}"#{SEPERATOR}"#{code}"#{SEPERATOR}"\"#{quote}\"\n"
+      output_line = "000#{SEPERATOR}#{reference_file}#{SEPERATOR}#{last_timestamp}#{SEPERATOR}#{formatted_line}\n"
+
+      out.write output_line
     end
   end
 end
